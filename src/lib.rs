@@ -1,5 +1,5 @@
 pub mod parse;
-use parse::*;
+use parse::{LogLine, parse_log_line, LogKind, SystemLogKind, AppLogKind, AppLogJournalKind};
 use std::num::NonZeroU32;
 
 /// Режим чтения логов
@@ -28,8 +28,7 @@ impl<R: std::io::BufRead> LogIterator<R> {
                     !line_res
                         .as_ref()
                         .ok()
-                        .map(|line| line.trim().is_empty())
-                        .unwrap_or(false)
+                        .is_some_and(|line| line.trim().is_empty())
                 })
                     as fn(&Result<String, std::io::Error>) -> bool,
             ),

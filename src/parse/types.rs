@@ -2,32 +2,32 @@ use std::num::NonZeroU32;
 
 use super::Parsable;
 use super::Parser;
-use super::combinators::*;
+use super::combinators::{Map, Take, map, take, Alt, Tag, Delimited, Unquote, alt2, tag, delimited, unquote, All, StripWhitespace, Permutation, KeyValue, all2, strip_whitespace, permutation2, key_value, List, list};
 use super::stdp;
 
-pub(crate) const AUTHDATA_SIZE: usize = 1024;
+pub const AUTHDATA_SIZE: usize = 1024;
 
 // подсказка: довольно много места на стэке
 /// Данные для авторизации
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthData(pub(crate) [u8; AUTHDATA_SIZE]);
 impl Parsable for AuthData {
     type Parser = Map<Take<stdp::Byte>, fn(Vec<u8>) -> Self>;
     fn parser() -> Self::Parser {
         map(take(AUTHDATA_SIZE, stdp::Byte), |authdata| {
-            AuthData(authdata.try_into().unwrap_or([0; AUTHDATA_SIZE]))
+            Self(authdata.try_into().unwrap_or([0; AUTHDATA_SIZE]))
         })
     }
 }
 
 /// Конструкция 'либо-либо'
-pub(crate) enum Either<Left, Right> {
+pub enum Either<Left, Right> {
     Left(Left),
     Right(Right),
 }
 
 /// Статус, которые можно парсить
-pub(crate) enum Status {
+pub enum Status {
     Ok,
     Err(String),
 }
@@ -37,10 +37,10 @@ impl Parsable for Status {
         Map<Delimited<Tag, Unquote, Tag>, fn(String) -> Self>,
     )>;
     fn parser() -> Self::Parser {
-        fn to_ok(_: ()) -> Status {
+        const fn to_ok(_: ()) -> Status {
             Status::Ok
         }
-        fn to_err(error: String) -> Status {
+        const fn to_err(error: String) -> Status {
             Status::Err(error)
         }
         alt2(
@@ -51,7 +51,7 @@ impl Parsable for Status {
 }
 
 /// Пара 'сокращённое название предмета' - 'его описание'
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssetDsc {
     // `dsc` aka `description`
     pub id: String,
@@ -80,12 +80,12 @@ impl Parsable for AssetDsc {
                 ),
                 strip_whitespace(tag("}")),
             ),
-            |(id, dsc)| AssetDsc { id, dsc },
+            |(id, dsc)| Self { id, dsc },
         )
     }
 }
 /// Сведение о предмете в некотором количестве
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Backet {
     pub asset_id: String,
     pub count: NonZeroU32,
@@ -112,12 +112,12 @@ impl Parsable for Backet {
                 ),
                 strip_whitespace(tag("}")),
             ),
-            |(asset_id, count)| Backet { asset_id, count },
+            |(asset_id, count)| Self { asset_id, count },
         )
     }
 }
 /// Фиатные деньги конкретного пользователя
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserCash {
     pub user_id: String,
     pub count: NonZeroU32,
@@ -144,12 +144,12 @@ impl Parsable for UserCash {
                 ),
                 strip_whitespace(tag("}")),
             ),
-            |(user_id, count)| UserCash { user_id, count },
+            |(user_id, count)| Self { user_id, count },
         )
     }
 }
 /// [Backet] конкретного пользователя
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserBacket {
     pub user_id: String,
     pub backet: Backet,
@@ -179,12 +179,12 @@ impl Parsable for UserBacket {
                 ),
                 strip_whitespace(tag("}")),
             ),
-            |(user_id, backet)| UserBacket { user_id, backet },
+            |(user_id, backet)| Self { user_id, backet },
         )
     }
 }
 /// [Бакеты](Backet) конкретного пользователя
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserBackets {
     pub user_id: String,
     pub backets: Vec<Backet>,
@@ -214,7 +214,7 @@ impl Parsable for UserBackets {
                 ),
                 strip_whitespace(tag("}")),
             ),
-            |(user_id, backets)| UserBackets { user_id, backets },
+            |(user_id, backets)| Self { user_id, backets },
         )
     }
 }
@@ -227,7 +227,7 @@ impl Parsable for Announcements {
         fn(Vec<UserBackets>) -> Self,
     >;
     fn parser() -> Self::Parser {
-        fn from_vec(vec: Vec<UserBackets>) -> Announcements {
+        const fn from_vec(vec: Vec<UserBackets>) -> Announcements {
             Announcements(vec)
         }
         map(list(UserBackets::parser()), from_vec)
@@ -235,7 +235,7 @@ impl Parsable for Announcements {
 }
 
 /// Дженерик-обёртка для парсинга любого [Parsable] типа
-pub(crate) fn just_parse<T: Parsable>(
+pub fn just_parse<T: Parsable>(
     input: &str,
 ) -> Result<(&str, T), ()> {
     T::parser().parse(input)

@@ -1,23 +1,22 @@
 use super::Parser;
 
 /// Обернуть строку в кавычки, экранировав кавычки, которые в строке уже есть
-pub(crate) fn quote(input: &str) -> String {
+pub fn quote(input: &str) -> String {
     let mut result = String::from("\"");
     result.extend(
         input
             .chars()
-            .map(|c| match c {
+            .flat_map(|c| match c {
                 '\\' | '"' => ['\\', c].into_iter().take(2),
                 _ => [c, ' '].into_iter().take(1),
-            })
-            .flatten(),
+            }),
     );
     result.push('"');
     result
 }
 /// Распарсить строку, которую ранее [обернули в кавычки](quote)
 // `"abc\"def\\ghi"nice` -> (`abcd"def\ghi`, `nice`)
-pub(crate) fn do_unquote(input: &str) -> Result<(&str, String), ()> {
+pub fn do_unquote(input: &str) -> Result<(&str, String), ()> {
     let mut result = String::new();
     let mut escaped_now = false;
     let mut chars = input.strip_prefix("\"").ok_or(())?.chars();
@@ -38,8 +37,8 @@ pub(crate) fn do_unquote(input: &str) -> Result<(&str, String), ()> {
     Err(()) // строка кончилась, не закрыв кавычку
 }
 /// Распарсить строку, обёрную в кавычки
-/// (сокращённая версия [do_unquote], в которой вложенные кавычки не предусмотрены)
-pub(crate) fn do_unquote_non_escaped(input: &str) -> Result<(&str, &str), ()> {
+/// (сокращённая версия [`do_unquote`], в которой вложенные кавычки не предусмотрены)
+pub fn do_unquote_non_escaped(input: &str) -> Result<(&str, &str), ()> {
     let input = input.strip_prefix("\"").ok_or(())?;
     let quote_byteidx = input.find('"').ok_or(())?;
     if 0 == quote_byteidx
@@ -51,7 +50,7 @@ pub(crate) fn do_unquote_non_escaped(input: &str) -> Result<(&str, &str), ()> {
 }
 /// Парсер кавычек
 #[derive(Debug, Clone)]
-pub(crate) struct Unquote;
+pub struct Unquote;
 impl Parser for Unquote {
     type Dest = String;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
@@ -59,12 +58,12 @@ impl Parser for Unquote {
     }
 }
 /// Конструктор [Unquote]
-pub(crate) fn unquote() -> Unquote {
+pub const fn unquote() -> Unquote {
     Unquote
 }
 /// Парсер, возвращающий результат как есть
 #[derive(Debug, Clone)]
-pub(crate) struct AsIs;
+pub struct AsIs;
 impl Parser for AsIs {
     type Dest = String;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
@@ -74,7 +73,7 @@ impl Parser for AsIs {
 /// Парсер константных строк
 /// (аналог `nom::bytes::complete::tag`)
 #[derive(Debug, Clone)]
-pub(crate) struct Tag {
+pub struct Tag {
     pub(crate) tag: &'static str,
 }
 impl Parser for Tag {
@@ -84,12 +83,12 @@ impl Parser for Tag {
     }
 }
 /// Конструктор [Tag]
-pub(crate) fn tag(tag: &'static str) -> Tag {
+pub const fn tag(tag: &'static str) -> Tag {
     Tag { tag }
 }
 /// Парсер [тэга](Tag), обёрнутого в кавычки
 #[derive(Debug, Clone)]
-pub(crate) struct QuotedTag(pub(crate) Tag);
+pub struct QuotedTag(pub(crate) Tag);
 impl Parser for QuotedTag {
     type Dest = ();
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
@@ -100,13 +99,13 @@ impl Parser for QuotedTag {
         Ok((remaining, ()))
     }
 }
-/// Конструктор [QuotedTag]
-pub(crate) fn quoted_tag(tag: &'static str) -> QuotedTag {
+/// Конструктор [`QuotedTag`]
+pub const fn quoted_tag(tag: &'static str) -> QuotedTag {
     QuotedTag(Tag { tag })
 }
 /// Комбинатор, пробрасывающий строку без лидирующих пробелов
 #[derive(Debug, Clone)]
-pub(crate) struct StripWhitespace<T> {
+pub struct StripWhitespace<T> {
     pub(crate) parser: T,
 }
 impl<T: Parser> Parser for StripWhitespace<T> {
@@ -117,8 +116,8 @@ impl<T: Parser> Parser for StripWhitespace<T> {
             .map(|(remaining, parsed)| (remaining.trim_start(), parsed))
     }
 }
-/// Конструктор [StripWhitespace]
-pub(crate) fn strip_whitespace<T: Parser>(parser: T) -> StripWhitespace<T> {
+/// Конструктор [`StripWhitespace`]
+pub const fn strip_whitespace<T: Parser>(parser: T) -> StripWhitespace<T> {
     StripWhitespace { parser }
 }
 /// Комбинатор, чтобы распарсить нужное, окружённое в начале и в конце чем-то
@@ -129,7 +128,7 @@ pub(crate) fn strip_whitespace<T: Parser>(parser: T) -> StripWhitespace<T> {
 /// строкой - строка, оставшаяся после парсера3.
 /// (аналог `delimited` из `nom`)
 #[derive(Debug, Clone)]
-pub(crate) struct Delimited<Prefix, T, Suffix> {
+pub struct Delimited<Prefix, T, Suffix> {
     pub(crate) prefix_to_ignore: Prefix,
     pub(crate) dest_parser: T,
     pub(crate) suffix_to_ignore: Suffix,
@@ -150,7 +149,7 @@ where
     }
 }
 /// Конструктор [Delimited]
-pub(crate) fn delimited<Prefix, T, Suffix>(
+pub const fn delimited<Prefix, T, Suffix>(
     prefix_to_ignore: Prefix,
     dest_parser: T,
     suffix_to_ignore: Suffix,
@@ -169,7 +168,7 @@ where
 /// Комбинатор-отображение. Парсит дочерним парсером, преобразует результат так,
 /// как вызывающему хочется
 #[derive(Debug, Clone)]
-pub(crate) struct Map<T, M> {
+pub struct Map<T, M> {
     pub(crate) parser: T,
     pub(crate) map: M,
 }
@@ -182,7 +181,7 @@ impl<T: Parser, Dest: Sized, M: Fn(T::Dest) -> Dest> Parser for Map<T, M> {
     }
 }
 /// Конструктор [Map]
-pub(crate) fn map<T: Parser, Dest: Sized, M: Fn(T::Dest) -> Dest>(
+pub const fn map<T: Parser, Dest: Sized, M: Fn(T::Dest) -> Dest>(
     parser: T,
     map: M,
 ) -> Map<T, M> {
@@ -191,7 +190,7 @@ pub(crate) fn map<T: Parser, Dest: Sized, M: Fn(T::Dest) -> Dest>(
 /// Комбинатор с отбрасываемым префиксом, упрощённая версия [Delimited]
 /// (аналог `preceeded` из `nom`)
 #[derive(Debug, Clone)]
-pub(crate) struct Preceded<Prefix, T> {
+pub struct Preceded<Prefix, T> {
     pub(crate) prefix_to_ignore: Prefix,
     pub(crate) dest_parser: T,
 }
@@ -207,7 +206,7 @@ where
     }
 }
 /// Конструктор [Preceded]
-pub(crate) fn preceded<Prefix, T>(
+pub const fn preceded<Prefix, T>(
     prefix_to_ignore: Prefix,
     dest_parser: T,
 ) -> Preceded<Prefix, T>
@@ -223,7 +222,7 @@ where
 /// Комбинатор, который требует, чтобы все дочерние парсеры отработали,
 /// (аналог `all` из `nom`)
 #[derive(Debug, Clone)]
-pub(crate) struct All<T> {
+pub struct All<T> {
     pub(crate) parser: T,
 }
 impl<A0, A1> Parser for All<(A0, A1)>
@@ -242,7 +241,7 @@ where
 }
 /// Конструктор [All] для двух парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
-pub(crate) fn all2<A0: Parser, A1: Parser>(a0: A0, a1: A1) -> All<(A0, A1)> {
+pub const fn all2<A0: Parser, A1: Parser>(a0: A0, a1: A1) -> All<(A0, A1)> {
     All { parser: (a0, a1) }
 }
 impl<A0, A1, A2> Parser for All<(A0, A1, A2)>
@@ -263,7 +262,7 @@ where
 }
 /// Конструктор [All] для трёх парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
-pub(crate) fn all3<A0: Parser, A1: Parser, A2: Parser>(
+pub const fn all3<A0: Parser, A1: Parser, A2: Parser>(
     a0: A0,
     a1: A1,
     a2: A2,
@@ -292,7 +291,7 @@ where
 }
 /// Конструктор [All] для четырёх парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
-pub(crate) fn all4<A0: Parser, A1: Parser, A2: Parser, A3: Parser>(
+pub const fn all4<A0: Parser, A1: Parser, A2: Parser, A3: Parser>(
     a0: A0,
     a1: A1,
     a2: A2,
@@ -306,7 +305,7 @@ pub(crate) fn all4<A0: Parser, A1: Parser, A2: Parser, A3: Parser>(
 /// Для простоты реализации, запятая всегда нужна в конце пары ключ-значение,
 /// простое '"ключ":значение' читаться не будет
 #[derive(Debug, Clone)]
-pub(crate) struct KeyValue<T> {
+pub struct KeyValue<T> {
     pub(crate) parser: Delimited<
         All<(StripWhitespace<QuotedTag>, StripWhitespace<Tag>)>,
         StripWhitespace<T>,
@@ -322,8 +321,8 @@ where
         self.parser.parse(input)
     }
 }
-/// Конструктор [KeyValue]
-pub(crate) fn key_value<T: Parser>(
+/// Конструктор [`KeyValue`]
+pub const fn key_value<T: Parser>(
     key: &'static str,
     value_parser: T,
 ) -> KeyValue<T> {
@@ -340,7 +339,7 @@ pub(crate) fn key_value<T: Parser>(
 /// том порядке, в каком `Permutation` был сконструирован
 /// (аналог `permutation` из `nom`)
 #[derive(Debug, Clone)]
-pub(crate) struct Permutation<T> {
+pub struct Permutation<T> {
     pub(crate) parsers: T,
 }
 impl<A0, A1> Parser for Permutation<(A0, A1)>
@@ -369,7 +368,7 @@ where
 }
 /// Конструктор [Permutation] для двух парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
-pub(crate) fn permutation2<A0: Parser, A1: Parser>(
+pub const fn permutation2<A0: Parser, A1: Parser>(
     a0: A0,
     a1: A1,
 ) -> Permutation<(A0, A1)> {
@@ -442,7 +441,7 @@ where
 }
 /// Конструктор [Permutation] для трёх парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
-pub(crate) fn permutation3<A0: Parser, A1: Parser, A2: Parser>(
+pub const fn permutation3<A0: Parser, A1: Parser, A2: Parser>(
     a0: A0,
     a1: A1,
     a2: A2,
@@ -456,7 +455,7 @@ pub(crate) fn permutation3<A0: Parser, A1: Parser, A2: Parser>(
 /// скобками.
 /// Для простоты реализации, после каждого элемента списка должна быть запятая
 #[derive(Debug, Clone)]
-pub(crate) struct List<T> {
+pub struct List<T> {
     pub(crate) parser: T,
 }
 impl<T: Parser> Parser for List<T> {
@@ -466,31 +465,28 @@ impl<T: Parser> Parser for List<T> {
             input.trim_start().strip_prefix('[').ok_or(())?.trim_start();
         let mut result = Vec::new();
         while !remaining.is_empty() {
-            match remaining.strip_prefix(']') {
-                Some(rest) => return Ok((rest.trim_start(), result)),
-                None => {
-                    let (new_remaining, item) = self.parser.parse(remaining)?;
-                    remaining = new_remaining
-                        .trim_start()
-                        .strip_prefix(',')
-                        .ok_or(())?
-                        .trim_start();
-                    result.push(item);
-                }
+            if let Some(rest) = remaining.strip_prefix(']') { return Ok((rest.trim_start(), result)) } else {
+                let (new_remaining, item) = self.parser.parse(remaining)?;
+                remaining = new_remaining
+                    .trim_start()
+                    .strip_prefix(',')
+                    .ok_or(())?
+                    .trim_start();
+                result.push(item);
             }
         }
         Err(()) // строка кончилась, не закрыв скобку
     }
 }
 /// Конструктор для [List]
-pub(crate) fn list<T: Parser>(parser: T) -> List<T> {
+pub const fn list<T: Parser>(parser: T) -> List<T> {
     List { parser }
 }
 /// Комбинатор, который вернёт тот результат, который будет успешно
 /// получен первым из дочерних комбинаторов
 /// (аналог `alt` из `nom`)
 #[derive(Debug, Clone)]
-pub(crate) struct Alt<T> {
+pub struct Alt<T> {
     pub(crate) parser: T,
 }
 impl<A0, A1, Dest> Parser for Alt<(A0, A1)>
@@ -503,12 +499,12 @@ where
         self.parser
             .0
             .parse(input)
-            .or_else(|_| self.parser.1.parse(input))
+            .or_else(|()| self.parser.1.parse(input))
     }
 }
 /// Конструктор [Alt] для двух парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
-pub(crate) fn alt2<Dest, A0: Parser<Dest = Dest>, A1: Parser<Dest = Dest>>(
+pub const fn alt2<Dest, A0: Parser<Dest = Dest>, A1: Parser<Dest = Dest>>(
     a0: A0,
     a1: A1,
 ) -> Alt<(A0, A1)> {
@@ -525,13 +521,13 @@ where
         self.parser
             .0
             .parse(input)
-            .or_else(|_| self.parser.1.parse(input))
-            .or_else(|_| self.parser.2.parse(input))
+            .or_else(|()| self.parser.1.parse(input))
+            .or_else(|()| self.parser.2.parse(input))
     }
 }
 /// Конструктор [Alt] для трёх парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
-pub(crate) fn alt3<
+pub const fn alt3<
     Dest,
     A0: Parser<Dest = Dest>,
     A1: Parser<Dest = Dest>,
@@ -557,14 +553,14 @@ where
         self.parser
             .0
             .parse(input)
-            .or_else(|_| self.parser.1.parse(input))
-            .or_else(|_| self.parser.2.parse(input))
-            .or_else(|_| self.parser.3.parse(input))
+            .or_else(|()| self.parser.1.parse(input))
+            .or_else(|()| self.parser.2.parse(input))
+            .or_else(|()| self.parser.3.parse(input))
     }
 }
 /// Конструктор [Alt] для четырёх парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
-pub(crate) fn alt4<
+pub const fn alt4<
     Dest,
     A0: Parser<Dest = Dest>,
     A1: Parser<Dest = Dest>,
@@ -597,18 +593,18 @@ where
         self.parser
             .0
             .parse(input)
-            .or_else(|_| self.parser.1.parse(input))
-            .or_else(|_| self.parser.2.parse(input))
-            .or_else(|_| self.parser.3.parse(input))
-            .or_else(|_| self.parser.4.parse(input))
-            .or_else(|_| self.parser.5.parse(input))
-            .or_else(|_| self.parser.6.parse(input))
-            .or_else(|_| self.parser.7.parse(input))
+            .or_else(|()| self.parser.1.parse(input))
+            .or_else(|()| self.parser.2.parse(input))
+            .or_else(|()| self.parser.3.parse(input))
+            .or_else(|()| self.parser.4.parse(input))
+            .or_else(|()| self.parser.5.parse(input))
+            .or_else(|()| self.parser.6.parse(input))
+            .or_else(|()| self.parser.7.parse(input))
     }
 }
 /// Конструктор [Alt] для восьми парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
-pub(crate) fn alt8<
+pub const fn alt8<
     Dest,
     A0: Parser<Dest = Dest>,
     A1: Parser<Dest = Dest>,
@@ -635,7 +631,7 @@ pub(crate) fn alt8<
 
 /// Комбинатор для применения дочернего парсера N раз
 /// (аналог `take` из `nom`)
-pub(crate) struct Take<T> {
+pub struct Take<T> {
     pub(crate) count: usize,
     pub(crate) parser: T,
 }
@@ -653,6 +649,6 @@ impl<T: Parser> Parser for Take<T> {
     }
 }
 /// Конструктор `Take`
-pub(crate) fn take<T: Parser>(count: usize, parser: T) -> Take<T> {
+pub const fn take<T: Parser>(count: usize, parser: T) -> Take<T> {
     Take { count, parser }
 }

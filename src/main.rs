@@ -53,8 +53,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let parsing_demo = r#"[UserBackets{"user_id":"Bob","backets":[Backet{"asset_id":"milk","count":3,},],},]"#;
     let announcements = analysis::parse::just_parse_anouncements(parsing_demo)
-        .map_err(|_| "failed to parse announcements")?;
-    println!("demo-parsed: {:?}", announcements);
+        .map_err(|()| "failed to parse announcements")?;
+    println!("demo-parsed: {announcements:?}");
 
     let args = std::env::args().collect::<Vec<_>>();
     let filename = args.get(1).ok_or("missing filename argument")?;
@@ -67,6 +67,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let logs = analysis::read_log(file, analysis::ReadMode::All, &[]);
     println!("got logs:");
-    logs.iter().for_each(|parsed| println!("  {:?}", parsed));
+    logs.iter().for_each(|parsed| println!("  {parsed:?}"));
     Ok(())
 }
