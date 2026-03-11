@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use super::Parsable;
 use super::combinators::*;
 use super::stdp;
@@ -53,7 +55,7 @@ pub enum AppLogTraceKind {
 pub enum AppLogJournalKind {
     CreateUser {
         user_id: String,
-        authorized_capital: u32,
+        authorized_capital: NonZeroU32,
     },
     DeleteUser {
         user_id: String,
@@ -61,7 +63,7 @@ pub enum AppLogJournalKind {
     RegisterAsset {
         asset_id: String,
         user_id: String,
-        liquidity: u32,
+        liquidity: NonZeroU32,
     },
     UnregisterAsset {
         asset_id: String,
@@ -277,7 +279,7 @@ impl Parsable for AppLogJournalKind {
                     StripWhitespace<Tag>,
                     Delimited<Tag, Permutation<(KeyValue<Unquote>, KeyValue<stdp::U32>)>, Tag>,
                 >,
-                fn((String, u32)) -> AppLogJournalKind,
+                fn((String, NonZeroU32)) -> AppLogJournalKind,
             >,
             Map<
                 Preceded<StripWhitespace<Tag>, Delimited<Tag, KeyValue<Unquote>, Tag>>,
@@ -292,7 +294,7 @@ impl Parsable for AppLogJournalKind {
                         Tag,
                     >,
                 >,
-                fn((String, String, u32)) -> AppLogJournalKind,
+                fn((String, String, NonZeroU32)) -> AppLogJournalKind,
             >,
             Map<
                 Preceded<
@@ -442,7 +444,7 @@ impl Parsable for LogKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct LogLine {
     pub kind: LogKind,
-    pub request_id: u32,
+    pub request_id: NonZeroU32,
 }
 impl Parsable for LogLine {
     type Parser = Map<
@@ -450,7 +452,7 @@ impl Parsable for LogLine {
             <LogKind as Parsable>::Parser,
             StripWhitespace<Preceded<Tag, stdp::U32>>,
         )>,
-        fn((LogKind, u32)) -> Self,
+        fn((LogKind, NonZeroU32)) -> Self,
     >;
     fn parser() -> Self::Parser {
         map(

@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use super::Parsable;
 use super::Parser;
 use super::combinators::*;
@@ -83,7 +85,7 @@ impl Parsable for AssetDsc {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Backet {
     pub asset_id: String,
-    pub count: u32,
+    pub count: NonZeroU32,
 }
 impl Parsable for Backet {
     type Parser = Map<
@@ -92,7 +94,7 @@ impl Parsable for Backet {
             Permutation<(KeyValue<Unquote>, KeyValue<stdp::U32>)>,
             StripWhitespace<Tag>,
         >,
-        fn((String, u32)) -> Self,
+        fn((String, NonZeroU32)) -> Self,
     >;
     fn parser() -> Self::Parser {
         map(
@@ -112,7 +114,7 @@ impl Parsable for Backet {
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserCash {
     pub user_id: String,
-    pub count: u32,
+    pub count: NonZeroU32,
 }
 impl Parsable for UserCash {
     type Parser = Map<
@@ -121,7 +123,7 @@ impl Parsable for UserCash {
             Permutation<(KeyValue<Unquote>, KeyValue<stdp::U32>)>,
             StripWhitespace<Tag>,
         >,
-        fn((String, u32)) -> Self,
+        fn((String, NonZeroU32)) -> Self,
     >;
     fn parser() -> Self::Parser {
         map(

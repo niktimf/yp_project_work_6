@@ -1,5 +1,6 @@
 pub mod parse;
 use parse::*;
+use std::num::NonZeroU32;
 
 /// Режим чтения логов
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,7 +42,7 @@ impl<R: std::io::BufRead> Iterator for LogIterator<R> {
 }
 
 /// Принимает поток байт, отдаёт отфильтрованные и распарсенные логи
-pub fn read_log<R: std::io::Read>(input: R, mode: ReadMode, request_ids: Vec<u32>) -> Vec<LogLine> {
+pub fn read_log<R: std::io::Read>(input: R, mode: ReadMode, request_ids: &[NonZeroU32]) -> Vec<LogLine> {
     let reader = std::io::BufReader::with_capacity(4096, input);
     LogIterator::new(reader)
         .filter(|log| {
@@ -141,8 +142,8 @@ App::Journal BuyAsset UserBacket{"user_id":"Alice","backet":Backet{"asset_id":"m
 
     #[test]
     fn test_all() {
-        assert_eq!(read_log(SOURCE1.as_bytes(), ReadMode::All, vec![]).len(), 1);
-        let all_parsed = read_log(SOURCE.as_bytes(), ReadMode::All, vec![]);
+        assert_eq!(read_log(SOURCE1.as_bytes(), ReadMode::All, &[]).len(), 1);
+        let all_parsed = read_log(SOURCE.as_bytes(), ReadMode::All, &[]);
         println!("all parsed:");
         all_parsed
             .iter()

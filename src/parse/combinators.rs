@@ -17,7 +17,7 @@ pub(crate) fn quote(input: &str) -> String {
 }
 /// Распарсить строку, которую ранее [обернули в кавычки](quote)
 // `"abc\"def\\ghi"nice` -> (`abcd"def\ghi`, `nice`)
-pub(crate) fn do_unquote<'a>(input: &'a str) -> Result<(&'a str, String), ()> {
+pub(crate) fn do_unquote(input: &str) -> Result<(&str, String), ()> {
     let mut result = String::new();
     let mut escaped_now = false;
     let mut chars = input.strip_prefix("\"").ok_or(())?.chars();
@@ -39,7 +39,7 @@ pub(crate) fn do_unquote<'a>(input: &'a str) -> Result<(&'a str, String), ()> {
 }
 /// Распарсить строку, обёрную в кавычки
 /// (сокращённая версия [do_unquote], в которой вложенные кавычки не предусмотрены)
-pub(crate) fn do_unquote_non_escaped<'a>(input: &'a str) -> Result<(&'a str, &'a str), ()> {
+pub(crate) fn do_unquote_non_escaped(input: &str) -> Result<(&str, &str), ()> {
     let input = input.strip_prefix("\"").ok_or(())?;
     let quote_byteidx = input.find('"').ok_or(())?;
     if 0 == quote_byteidx || Some("\\") == input.get(quote_byteidx - 1..quote_byteidx) {
@@ -499,10 +499,8 @@ where
 {
     type Dest = Dest;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        if let Ok(ok) = self.parser.0.parse(input) {
-            return Ok(ok);
-        }
-        self.parser.1.parse(input)
+        self.parser.0.parse(input)
+            .or_else(|_| self.parser.1.parse(input))
     }
 }
 /// Конструктор [Alt] для двух парсеров
@@ -521,13 +519,9 @@ where
 {
     type Dest = Dest;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        if let Ok(ok) = self.parser.0.parse(input) {
-            return Ok(ok);
-        }
-        if let Ok(ok) = self.parser.1.parse(input) {
-            return Ok(ok);
-        }
-        self.parser.2.parse(input)
+        self.parser.0.parse(input)
+            .or_else(|_| self.parser.1.parse(input))
+            .or_else(|_| self.parser.2.parse(input))
     }
 }
 /// Конструктор [Alt] для трёх парсеров
@@ -555,16 +549,10 @@ where
 {
     type Dest = Dest;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        if let Ok(ok) = self.parser.0.parse(input) {
-            return Ok(ok);
-        }
-        if let Ok(ok) = self.parser.1.parse(input) {
-            return Ok(ok);
-        }
-        if let Ok(ok) = self.parser.2.parse(input) {
-            return Ok(ok);
-        }
-        self.parser.3.parse(input)
+        self.parser.0.parse(input)
+            .or_else(|_| self.parser.1.parse(input))
+            .or_else(|_| self.parser.2.parse(input))
+            .or_else(|_| self.parser.3.parse(input))
     }
 }
 /// Конструктор [Alt] для четырёх парсеров
@@ -598,28 +586,14 @@ where
 {
     type Dest = Dest;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        if let Ok(ok) = self.parser.0.parse(input) {
-            return Ok(ok);
-        }
-        if let Ok(ok) = self.parser.1.parse(input) {
-            return Ok(ok);
-        }
-        if let Ok(ok) = self.parser.2.parse(input) {
-            return Ok(ok);
-        }
-        if let Ok(ok) = self.parser.3.parse(input) {
-            return Ok(ok);
-        }
-        if let Ok(ok) = self.parser.4.parse(input) {
-            return Ok(ok);
-        }
-        if let Ok(ok) = self.parser.5.parse(input) {
-            return Ok(ok);
-        }
-        if let Ok(ok) = self.parser.6.parse(input) {
-            return Ok(ok);
-        }
-        self.parser.7.parse(input)
+        self.parser.0.parse(input)
+            .or_else(|_| self.parser.1.parse(input))
+            .or_else(|_| self.parser.2.parse(input))
+            .or_else(|_| self.parser.3.parse(input))
+            .or_else(|_| self.parser.4.parse(input))
+            .or_else(|_| self.parser.5.parse(input))
+            .or_else(|_| self.parser.6.parse(input))
+            .or_else(|_| self.parser.7.parse(input))
     }
 }
 /// Конструктор [Alt] для восьми парсеров
@@ -658,14 +632,11 @@ pub(crate) struct Take<T> {
 impl<T: Parser> Parser for Take<T> {
     type Dest = Vec<T::Dest>;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        let mut remaining = input;
-        let mut result = Vec::new();
-        for _ in 0..self.count {
-            let (new_remaining, new_result) = self.parser.parse(remaining)?;
-            result.push(new_result);
-            remaining = new_remaining;
-        }
-        Ok((remaining, result))
+        (0..self.count).try_fold((input, Vec::with_capacity(self.count)), |(remaining, mut result), _| {
+            let (new_remaining, item) = self.parser.parse(remaining)?;
+            result.push(item);
+            Ok((new_remaining, result))
+        })
     }
 }
 /// Конструктор `Take`

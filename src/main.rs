@@ -48,25 +48,26 @@
 //  -- Error
 //   --- нет сети
 //   --- отказано в доступе
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Placeholder для экспериментов с cli");
 
     let parsing_demo =
-        r#"[UserBackets{"user_id":"Bob","backets":[Backet{"asset_id":"milk","count":3,},],},]"#
-            .to_string();
-    let announcements = analysis::parse::just_parse_anouncements(&parsing_demo).unwrap();
+        r#"[UserBackets{"user_id":"Bob","backets":[Backet{"asset_id":"milk","count":3,},],},]"#;
+    let announcements = analysis::parse::just_parse_anouncements(parsing_demo)
+        .map_err(|_| "failed to parse announcements")?;
     println!("demo-parsed: {:?}", announcements);
 
     let args = std::env::args().collect::<Vec<_>>();
-    let filename = args[1].clone();
+    let filename = args.get(1).ok_or("missing filename argument")?;
     println!(
         "Trying opening file '{}' from directory '{}'",
         filename,
-        std::env::current_dir().unwrap().to_string_lossy()
+        std::env::current_dir()?.to_string_lossy()
     );
-    let file = std::fs::File::open(filename).unwrap();
+    let file = std::fs::File::open(filename)?;
 
-    let logs = analysis::read_log(file, analysis::ReadMode::All, vec![]);
+    let logs = analysis::read_log(file, analysis::ReadMode::All, &[]);
     println!("got logs:");
     logs.iter().for_each(|parsed| println!("  {:?}", parsed));
+    Ok(())
 }

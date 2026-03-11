@@ -28,24 +28,28 @@ pub fn parse_log_line(input: &str) -> Result<(&str, LogLine), ()> {
 mod test {
     use super::combinators::*;
     use super::*;
+    use std::num::{NonZeroU32, NonZeroI32};
+
+    fn nzu(v: u32) -> NonZeroU32 { NonZeroU32::new(v).unwrap() }
+    fn nzi(v: i32) -> NonZeroI32 { NonZeroI32::new(v).unwrap() }
 
     #[test]
     fn test_u32() {
-        assert_eq!(stdp::U32.parse("411"), Ok(("", 411)));
-        assert_eq!(stdp::U32.parse("411ab"), Ok(("ab", 411)));
+        assert_eq!(stdp::U32.parse("411"), Ok(("", nzu(411))));
+        assert_eq!(stdp::U32.parse("411ab"), Ok(("ab", nzu(411))));
         assert_eq!(stdp::U32.parse(""), Err(()));
         assert_eq!(stdp::U32.parse("-3"), Err(()));
-        assert_eq!(stdp::U32.parse("0x03"), Ok(("", 0x3)));
-        assert_eq!(stdp::U32.parse("0x03abg"), Ok(("g", 0x3ab)));
+        assert_eq!(stdp::U32.parse("0x03"), Ok(("", nzu(0x3))));
+        assert_eq!(stdp::U32.parse("0x03abg"), Ok(("g", nzu(0x3ab))));
         assert_eq!(stdp::U32.parse("0x"), Err(()));
     }
 
     #[test]
     fn test_i32() {
-        assert_eq!(stdp::I32.parse("411"), Ok(("", 411)));
-        assert_eq!(stdp::I32.parse("411ab"), Ok(("ab", 411)));
+        assert_eq!(stdp::I32.parse("411"), Ok(("", nzi(411))));
+        assert_eq!(stdp::I32.parse("411ab"), Ok(("ab", nzi(411))));
         assert_eq!(stdp::I32.parse(""), Err(()));
-        assert_eq!(stdp::I32.parse("-3"), Ok(("", -3)));
+        assert_eq!(stdp::I32.parse("-3"), Ok(("", nzi(-3))));
         assert_eq!(stdp::I32.parse("0x03"), Err(()));
         assert_eq!(stdp::I32.parse("-"), Err(()));
     }
@@ -112,7 +116,7 @@ mod test {
         );
         assert_eq!(
             strip_whitespace(stdp::U32).parse(" 42 answer"),
-            Ok(("answer", 42))
+            Ok(("answer", nzu(42)))
         );
     }
 
@@ -120,11 +124,11 @@ mod test {
     fn test_delimited() {
         assert_eq!(
             delimited(tag("["), stdp::U32, tag("]")).parse("[0x32]"),
-            Ok(("", 0x32))
+            Ok(("", nzu(0x32)))
         );
         assert_eq!(
             delimited(tag("["), stdp::U32, tag("]")).parse("[0x32] nice"),
-            Ok((" nice", 0x32))
+            Ok((" nice", nzu(0x32)))
         );
         assert_eq!(
             delimited(tag("["), stdp::U32, tag("]")).parse("0x32]"),
@@ -140,7 +144,7 @@ mod test {
     fn test_key_value() {
         assert_eq!(
             key_value("key", stdp::U32).parse(r#""key":32,"#),
-            Ok(("", 32))
+            Ok(("", nzu(32)))
         );
         assert_eq!(
             key_value("key", stdp::U32).parse(r#"key:32,"#),
@@ -152,7 +156,7 @@ mod test {
         );
         assert_eq!(
             key_value("key", stdp::U32).parse(r#" "key" : 32 , nice"#),
-            Ok(("nice", 32))
+            Ok(("nice", nzu(32)))
         );
     }
 
@@ -160,11 +164,11 @@ mod test {
     fn test_list() {
         assert_eq!(
             list(stdp::U32).parse("[1,2,3,4,]"),
-            Ok(("", vec![1, 2, 3, 4,]))
+            Ok(("", vec![nzu(1), nzu(2), nzu(3), nzu(4)]))
         );
         assert_eq!(
             list(stdp::U32).parse(" [ 1 , 2 , 3 , 4 , ] nice"),
-            Ok(("nice", vec![1, 2, 3, 4,]))
+            Ok(("nice", vec![nzu(1), nzu(2), nzu(3), nzu(4)]))
         );
         assert_eq!(list(stdp::U32).parse("1,2,3,4,"), Err(()));
         assert_eq!(list(stdp::U32).parse("[]"), Ok(("", vec![])));
@@ -242,7 +246,7 @@ mod test {
                 "",
                 Backet {
                     asset_id: "usd".into(),
-                    count: 42
+                    count: nzu(42)
                 }
             ))
         );
@@ -252,7 +256,7 @@ mod test {
                 "",
                 Backet {
                     asset_id: "usd".into(),
-                    count: 42
+                    count: nzu(42)
                 }
             ))
         );
@@ -287,7 +291,7 @@ mod test {
                 "",
                 LogKind::App(AppLogKind::Journal(AppLogJournalKind::CreateUser {
                     user_id: "Steeve".into(),
-                    authorized_capital: 10_000
+                    authorized_capital: nzu(10_000)
                 }))
             ))
         );
@@ -300,7 +304,7 @@ mod test {
                 }))
             ))
         );
-        assert_eq!(LogKind::parser().parse(r#"App::Journal RegisterAsset {"asset_id": "bayc", "liquidity": 100000000, "user_id": "Steeve",}"#), Ok(("", LogKind::App(AppLogKind::Journal(AppLogJournalKind::RegisterAsset{asset_id: "bayc".into(), user_id: "Steeve".into(), liquidity: 100_000_000})))));
+        assert_eq!(LogKind::parser().parse(r#"App::Journal RegisterAsset {"asset_id": "bayc", "liquidity": 100000000, "user_id": "Steeve",}"#), Ok(("", LogKind::App(AppLogKind::Journal(AppLogJournalKind::RegisterAsset{asset_id: "bayc".into(), user_id: "Steeve".into(), liquidity: nzu(100_000_000)})))));
         assert_eq!(
             LogKind::parser().parse(
                 r#"App::Journal DepositCash UserCash{"user_id": "Steeve", "count": 10,}"#
@@ -310,11 +314,11 @@ mod test {
                 LogKind::App(AppLogKind::Journal(AppLogJournalKind::DepositCash(
                     UserCash {
                         user_id: "Steeve".into(),
-                        count: 10
+                        count: nzu(10)
                     }
                 )))
             ))
         );
-        assert_eq!(LogKind::parser().parse(r#"App::Journal BuyAsset UserBacket{"user_id": "Steeve", "backet": Backet{"asset_id":"bayc","count":1,},}"#), Ok(("", LogKind::App(AppLogKind::Journal(AppLogJournalKind::BuyAsset(UserBacket{user_id: "Steeve".into(), backet: Backet{asset_id: "bayc".into(),count:1}}))))));
+        assert_eq!(LogKind::parser().parse(r#"App::Journal BuyAsset UserBacket{"user_id": "Steeve", "backet": Backet{"asset_id":"bayc","count":1,},}"#), Ok(("", LogKind::App(AppLogKind::Journal(AppLogJournalKind::BuyAsset(UserBacket{user_id: "Steeve".into(), backet: Backet{asset_id: "bayc".into(),count:nzu(1)}}))))));
     }
 }
