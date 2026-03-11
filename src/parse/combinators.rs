@@ -42,13 +42,12 @@ pub(crate) fn do_unquote(input: &str) -> Result<(&str, String), ()> {
 pub(crate) fn do_unquote_non_escaped(input: &str) -> Result<(&str, &str), ()> {
     let input = input.strip_prefix("\"").ok_or(())?;
     let quote_byteidx = input.find('"').ok_or(())?;
-    if 0 == quote_byteidx || Some("\\") == input.get(quote_byteidx - 1..quote_byteidx) {
+    if 0 == quote_byteidx
+        || Some("\\") == input.get(quote_byteidx - 1..quote_byteidx)
+    {
         return Err(());
     }
-    Ok((
-        &input[1 + quote_byteidx..],
-        &input[..quote_byteidx],
-    ))
+    Ok((&input[1 + quote_byteidx..], &input[..quote_byteidx]))
 }
 /// Парсер кавычек
 #[derive(Debug, Clone)]
@@ -183,7 +182,10 @@ impl<T: Parser, Dest: Sized, M: Fn(T::Dest) -> Dest> Parser for Map<T, M> {
     }
 }
 /// Конструктор [Map]
-pub(crate) fn map<T: Parser, Dest: Sized, M: Fn(T::Dest) -> Dest>(parser: T, map: M) -> Map<T, M> {
+pub(crate) fn map<T: Parser, Dest: Sized, M: Fn(T::Dest) -> Dest>(
+    parser: T,
+    map: M,
+) -> Map<T, M> {
     Map { parser, map }
 }
 /// Комбинатор с отбрасываемым префиксом, упрощённая версия [Delimited]
@@ -205,7 +207,10 @@ where
     }
 }
 /// Конструктор [Preceded]
-pub(crate) fn preceded<Prefix, T>(prefix_to_ignore: Prefix, dest_parser: T) -> Preceded<Prefix, T>
+pub(crate) fn preceded<Prefix, T>(
+    prefix_to_ignore: Prefix,
+    dest_parser: T,
+) -> Preceded<Prefix, T>
 where
     Prefix: Parser,
     T: Parser,
@@ -318,13 +323,13 @@ where
     }
 }
 /// Конструктор [KeyValue]
-pub(crate) fn key_value<T: Parser>(key: &'static str, value_parser: T) -> KeyValue<T> {
+pub(crate) fn key_value<T: Parser>(
+    key: &'static str,
+    value_parser: T,
+) -> KeyValue<T> {
     KeyValue {
         parser: delimited(
-            all2(
-                strip_whitespace(quoted_tag(key)),
-                strip_whitespace(tag(":")),
-            ),
+            all2(strip_whitespace(quoted_tag(key)), strip_whitespace(tag(":"))),
             strip_whitespace(value_parser),
             strip_whitespace(tag(",")),
         ),
@@ -351,18 +356,23 @@ where
                 .1
                 .parse(remaining)
                 .map(|(remaining, a1)| (remaining, (a0, a1))),
-            Err(()) => self.parsers.1.parse(input).and_then(|(remaining, a1)| {
-                self.parsers
-                    .0
-                    .parse(remaining)
-                    .map(|(remaining, a0)| (remaining, (a0, a1)))
-            }),
+            Err(()) => {
+                self.parsers.1.parse(input).and_then(|(remaining, a1)| {
+                    self.parsers
+                        .0
+                        .parse(remaining)
+                        .map(|(remaining, a0)| (remaining, (a0, a1)))
+                })
+            }
         }
     }
 }
 /// Конструктор [Permutation] для двух парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
-pub(crate) fn permutation2<A0: Parser, A1: Parser>(a0: A0, a1: A1) -> Permutation<(A0, A1)> {
+pub(crate) fn permutation2<A0: Parser, A1: Parser>(
+    a0: A0,
+    a1: A1,
+) -> Permutation<(A0, A1)> {
     Permutation { parsers: (a0, a1) }
 }
 impl<A0, A1, A2> Parser for Permutation<(A0, A1, A2)>
@@ -380,59 +390,53 @@ where
                     .2
                     .parse(remaining)
                     .map(|(remaining, a2)| (remaining, (a0, a1, a2))),
-                Err(()) => self
-                    .parsers
-                    .2
-                    .parse(remaining)
-                    .and_then(|(remaining, a2)| {
+                Err(()) => self.parsers.2.parse(remaining).and_then(
+                    |(remaining, a2)| {
                         self.parsers
                             .1
                             .parse(remaining)
                             .map(|(remaining, a1)| (remaining, (a0, a1, a2)))
-                    }),
+                    },
+                ),
             },
-            Err(()) => {
-                match self.parsers.1.parse(input) {
-                    Ok((remaining, a1)) => {
-                        match self.parsers.0.parse(remaining) {
-                            Ok((remaining, a0)) => self
-                                .parsers
-                                .2
-                                .parse(remaining)
-                                .map(|(remaining, a2)| (remaining, (a0, a1, a2))),
-                            Err(()) => self.parsers.2.parse(remaining).and_then(
-                                |(remaining, a2)| {
-                                    self.parsers
-                                        .0
-                                        .parse(remaining)
-                                        .map(|(remaining, a0)| (remaining, (a0, a1, a2)))
-                                },
-                            ),
-                        }
-                    }
-                    Err(()) => self
+            Err(()) => match self.parsers.1.parse(input) {
+                Ok((remaining, a1)) => match self.parsers.0.parse(remaining) {
+                    Ok((remaining, a0)) => self
                         .parsers
                         .2
-                        .parse(input)
-                        .and_then(|(remaining, a2)| {
-                            match self.parsers.0.parse(remaining) {
-                                Ok((remaining, a0)) => self
-                                    .parsers
-                                    .1
-                                    .parse(remaining)
-                                    .map(|(remaining, a1)| (remaining, (a0, a1, a2))),
-                                Err(()) => self.parsers.1.parse(remaining).and_then(
-                                    |(remaining, a1)| {
-                                        self.parsers
-                                            .0
-                                            .parse(remaining)
-                                            .map(|(remaining, a0)| (remaining, (a0, a1, a2)))
-                                    },
-                                ),
+                        .parse(remaining)
+                        .map(|(remaining, a2)| (remaining, (a0, a1, a2))),
+                    Err(()) => self.parsers.2.parse(remaining).and_then(
+                        |(remaining, a2)| {
+                            self.parsers.0.parse(remaining).map(
+                                |(remaining, a0)| (remaining, (a0, a1, a2)),
+                            )
+                        },
+                    ),
+                },
+                Err(()) => {
+                    self.parsers.2.parse(input).and_then(|(remaining, a2)| {
+                        match self.parsers.0.parse(remaining) {
+                            Ok((remaining, a0)) => {
+                                self.parsers.1.parse(remaining).map(
+                                    |(remaining, a1)| (remaining, (a0, a1, a2)),
+                                )
                             }
-                        }),
+                            Err(()) => {
+                                self.parsers.1.parse(remaining).and_then(
+                                    |(remaining, a1)| {
+                                        self.parsers.0.parse(remaining).map(
+                                            |(remaining, a0)| {
+                                                (remaining, (a0, a1, a2))
+                                            },
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                    })
                 }
-            }
+            },
         }
     }
 }
@@ -458,11 +462,8 @@ pub(crate) struct List<T> {
 impl<T: Parser> Parser for List<T> {
     type Dest = Vec<T::Dest>;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        let mut remaining = input
-            .trim_start()
-            .strip_prefix('[')
-            .ok_or(())?
-            .trim_start();
+        let mut remaining =
+            input.trim_start().strip_prefix('[').ok_or(())?.trim_start();
         let mut result = Vec::new();
         while !remaining.is_empty() {
             match remaining.strip_prefix(']') {
@@ -499,7 +500,9 @@ where
 {
     type Dest = Dest;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        self.parser.0.parse(input)
+        self.parser
+            .0
+            .parse(input)
             .or_else(|_| self.parser.1.parse(input))
     }
 }
@@ -519,7 +522,9 @@ where
 {
     type Dest = Dest;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        self.parser.0.parse(input)
+        self.parser
+            .0
+            .parse(input)
             .or_else(|_| self.parser.1.parse(input))
             .or_else(|_| self.parser.2.parse(input))
     }
@@ -549,7 +554,9 @@ where
 {
     type Dest = Dest;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        self.parser.0.parse(input)
+        self.parser
+            .0
+            .parse(input)
             .or_else(|_| self.parser.1.parse(input))
             .or_else(|_| self.parser.2.parse(input))
             .or_else(|_| self.parser.3.parse(input))
@@ -573,7 +580,8 @@ pub(crate) fn alt4<
         parser: (a0, a1, a2, a3),
     }
 }
-impl<A0, A1, A2, A3, A4, A5, A6, A7, Dest> Parser for Alt<(A0, A1, A2, A3, A4, A5, A6, A7)>
+impl<A0, A1, A2, A3, A4, A5, A6, A7, Dest> Parser
+    for Alt<(A0, A1, A2, A3, A4, A5, A6, A7)>
 where
     A0: Parser<Dest = Dest>,
     A1: Parser<Dest = Dest>,
@@ -586,7 +594,9 @@ where
 {
     type Dest = Dest;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        self.parser.0.parse(input)
+        self.parser
+            .0
+            .parse(input)
             .or_else(|_| self.parser.1.parse(input))
             .or_else(|_| self.parser.2.parse(input))
             .or_else(|_| self.parser.3.parse(input))
@@ -632,11 +642,14 @@ pub(crate) struct Take<T> {
 impl<T: Parser> Parser for Take<T> {
     type Dest = Vec<T::Dest>;
     fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        (0..self.count).try_fold((input, Vec::with_capacity(self.count)), |(remaining, mut result), _| {
-            let (new_remaining, item) = self.parser.parse(remaining)?;
-            result.push(item);
-            Ok((new_remaining, result))
-        })
+        (0..self.count).try_fold(
+            (input, Vec::with_capacity(self.count)),
+            |(remaining, mut result), _| {
+                let (new_remaining, item) = self.parser.parse(remaining)?;
+                result.push(item);
+                Ok((new_remaining, result))
+            },
+        )
     }
 }
 /// Конструктор `Take`

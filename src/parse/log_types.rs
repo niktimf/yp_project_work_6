@@ -195,7 +195,10 @@ impl Parsable for AppLogErrorKind {
             tag("Error"),
             alt2(
                 map(
-                    preceded(strip_whitespace(tag("LackOf")), strip_whitespace(unquote())),
+                    preceded(
+                        strip_whitespace(tag("LackOf")),
+                        strip_whitespace(unquote()),
+                    ),
                     |error| AppLogErrorKind::LackOf(error),
                 ),
                 map(
@@ -214,7 +217,10 @@ impl Parsable for AppLogTraceKind {
         Tag,
         Alt<(
             Map<
-                Preceded<StripWhitespace<Tag>, StripWhitespace<<AuthData as Parsable>::Parser>>,
+                Preceded<
+                    StripWhitespace<Tag>,
+                    StripWhitespace<<AuthData as Parsable>::Parser>,
+                >,
                 fn(AuthData) -> AppLogTraceKind,
             >,
             Map<
@@ -277,12 +283,19 @@ impl Parsable for AppLogJournalKind {
             Map<
                 Preceded<
                     StripWhitespace<Tag>,
-                    Delimited<Tag, Permutation<(KeyValue<Unquote>, KeyValue<stdp::U32>)>, Tag>,
+                    Delimited<
+                        Tag,
+                        Permutation<(KeyValue<Unquote>, KeyValue<stdp::U32>)>,
+                        Tag,
+                    >,
                 >,
                 fn((String, NonZeroU32)) -> AppLogJournalKind,
             >,
             Map<
-                Preceded<StripWhitespace<Tag>, Delimited<Tag, KeyValue<Unquote>, Tag>>,
+                Preceded<
+                    StripWhitespace<Tag>,
+                    Delimited<Tag, KeyValue<Unquote>, Tag>,
+                >,
                 fn(String) -> AppLogJournalKind,
             >,
             Map<
@@ -290,7 +303,11 @@ impl Parsable for AppLogJournalKind {
                     StripWhitespace<Tag>,
                     Delimited<
                         Tag,
-                        Permutation<(KeyValue<Unquote>, KeyValue<Unquote>, KeyValue<stdp::U32>)>,
+                        Permutation<(
+                            KeyValue<Unquote>,
+                            KeyValue<Unquote>,
+                            KeyValue<stdp::U32>,
+                        )>,
                         Tag,
                     >,
                 >,
@@ -299,7 +316,11 @@ impl Parsable for AppLogJournalKind {
             Map<
                 Preceded<
                     StripWhitespace<Tag>,
-                    Delimited<Tag, Permutation<(KeyValue<Unquote>, KeyValue<Unquote>)>, Tag>,
+                    Delimited<
+                        Tag,
+                        Permutation<(KeyValue<Unquote>, KeyValue<Unquote>)>,
+                        Tag,
+                    >,
                 >,
                 fn((String, String)) -> AppLogJournalKind,
             >,
@@ -312,11 +333,17 @@ impl Parsable for AppLogJournalKind {
                 fn(UserCash) -> AppLogJournalKind,
             >,
             Map<
-                Preceded<StripWhitespace<Tag>, <UserBacket as Parsable>::Parser>,
+                Preceded<
+                    StripWhitespace<Tag>,
+                    <UserBacket as Parsable>::Parser,
+                >,
                 fn(UserBacket) -> AppLogJournalKind,
             >,
             Map<
-                Preceded<StripWhitespace<Tag>, <UserBacket as Parsable>::Parser>,
+                Preceded<
+                    StripWhitespace<Tag>,
+                    <UserBacket as Parsable>::Parser,
+                >,
                 fn(UserBacket) -> AppLogJournalKind,
             >,
         )>,
@@ -337,15 +364,21 @@ impl Parsable for AppLogJournalKind {
                             tag("}"),
                         ),
                     ),
-                    |(user_id, authorized_capital)| AppLogJournalKind::CreateUser {
-                        user_id,
-                        authorized_capital,
+                    |(user_id, authorized_capital)| {
+                        AppLogJournalKind::CreateUser {
+                            user_id,
+                            authorized_capital,
+                        }
                     },
                 ),
                 map(
                     preceded(
                         strip_whitespace(tag("DeleteUser")),
-                        delimited(tag("{"), key_value("user_id", unquote()), tag("}")),
+                        delimited(
+                            tag("{"),
+                            key_value("user_id", unquote()),
+                            tag("}"),
+                        ),
                     ),
                     |user_id| AppLogJournalKind::DeleteUser { user_id },
                 ),
@@ -362,10 +395,12 @@ impl Parsable for AppLogJournalKind {
                             tag("}"),
                         ),
                     ),
-                    |(asset_id, user_id, liquidity)| AppLogJournalKind::RegisterAsset {
-                        asset_id,
-                        user_id,
-                        liquidity,
+                    |(asset_id, user_id, liquidity)| {
+                        AppLogJournalKind::RegisterAsset {
+                            asset_id,
+                            user_id,
+                            liquidity,
+                        }
                     },
                 ),
                 map(
@@ -380,22 +415,37 @@ impl Parsable for AppLogJournalKind {
                             tag("}"),
                         ),
                     ),
-                    |(asset_id, user_id)| AppLogJournalKind::UnregisterAsset { asset_id, user_id },
+                    |(asset_id, user_id)| AppLogJournalKind::UnregisterAsset {
+                        asset_id,
+                        user_id,
+                    },
                 ),
                 map(
-                    preceded(strip_whitespace(tag("DepositCash")), UserCash::parser()),
+                    preceded(
+                        strip_whitespace(tag("DepositCash")),
+                        UserCash::parser(),
+                    ),
                     |user_cash| AppLogJournalKind::DepositCash(user_cash),
                 ),
                 map(
-                    preceded(strip_whitespace(tag("WithdrawCash")), UserCash::parser()),
+                    preceded(
+                        strip_whitespace(tag("WithdrawCash")),
+                        UserCash::parser(),
+                    ),
                     |user_cash| AppLogJournalKind::DepositCash(user_cash),
                 ),
                 map(
-                    preceded(strip_whitespace(tag("BuyAsset")), UserBacket::parser()),
+                    preceded(
+                        strip_whitespace(tag("BuyAsset")),
+                        UserBacket::parser(),
+                    ),
                     |user_backet| AppLogJournalKind::BuyAsset(user_backet),
                 ),
                 map(
-                    preceded(strip_whitespace(tag("SellAsset")), UserBacket::parser()),
+                    preceded(
+                        strip_whitespace(tag("SellAsset")),
+                        UserBacket::parser(),
+                    ),
                     |user_backet| AppLogJournalKind::SellAsset(user_backet),
                 ),
             ),
@@ -407,9 +457,18 @@ impl Parsable for AppLogKind {
         Preceded<
             Tag,
             Alt<(
-                Map<<AppLogErrorKind as Parsable>::Parser, fn(AppLogErrorKind) -> AppLogKind>,
-                Map<<AppLogTraceKind as Parsable>::Parser, fn(AppLogTraceKind) -> AppLogKind>,
-                Map<<AppLogJournalKind as Parsable>::Parser, fn(AppLogJournalKind) -> AppLogKind>,
+                Map<
+                    <AppLogErrorKind as Parsable>::Parser,
+                    fn(AppLogErrorKind) -> AppLogKind,
+                >,
+                Map<
+                    <AppLogTraceKind as Parsable>::Parser,
+                    fn(AppLogTraceKind) -> AppLogKind,
+                >,
+                Map<
+                    <AppLogJournalKind as Parsable>::Parser,
+                    fn(AppLogJournalKind) -> AppLogKind,
+                >,
             )>,
         >,
     >;
@@ -417,8 +476,12 @@ impl Parsable for AppLogKind {
         strip_whitespace(preceded(
             tag("App::"),
             alt3(
-                map(AppLogErrorKind::parser(), |error| AppLogKind::Error(error)),
-                map(AppLogTraceKind::parser(), |trace| AppLogKind::Trace(trace)),
+                map(AppLogErrorKind::parser(), |error| {
+                    AppLogKind::Error(error)
+                }),
+                map(AppLogTraceKind::parser(), |trace| {
+                    AppLogKind::Trace(trace)
+                }),
                 map(AppLogJournalKind::parser(), |journal| {
                     AppLogKind::Journal(journal)
                 }),
@@ -429,7 +492,10 @@ impl Parsable for AppLogKind {
 impl Parsable for LogKind {
     type Parser = StripWhitespace<
         Alt<(
-            Map<<SystemLogKind as Parsable>::Parser, fn(SystemLogKind) -> LogKind>,
+            Map<
+                <SystemLogKind as Parsable>::Parser,
+                fn(SystemLogKind) -> LogKind,
+            >,
             Map<<AppLogKind as Parsable>::Parser, fn(AppLogKind) -> LogKind>,
         )>,
     >;

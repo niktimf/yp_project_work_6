@@ -51,8 +51,7 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Placeholder для экспериментов с cli");
 
-    let parsing_demo =
-        r#"[UserBackets{"user_id":"Bob","backets":[Backet{"asset_id":"milk","count":3,},],},]"#;
+    let parsing_demo = r#"[UserBackets{"user_id":"Bob","backets":[Backet{"asset_id":"milk","count":3,},],},]"#;
     let announcements = analysis::parse::just_parse_anouncements(parsing_demo)
         .map_err(|_| "failed to parse announcements")?;
     println!("demo-parsed: {:?}", announcements);

@@ -17,8 +17,11 @@ impl Parser for U32 {
                 _ => Some(idx),
             })
             .unwrap_or(remaining.len());
-        let value = u32::from_str_radix(&remaining[..end_idx], if is_hex { 16 } else { 10 })
-            .map_err(|_| ())?;
+        let value = u32::from_str_radix(
+            &remaining[..end_idx],
+            if is_hex { 16 } else { 10 },
+        )
+        .map_err(|_| ())?;
         let value = std::num::NonZeroU32::new(value).ok_or(())?;
         Ok((&remaining[end_idx..], value))
     }

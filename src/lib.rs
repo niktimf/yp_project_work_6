@@ -15,7 +15,10 @@ pub enum ReadMode {
 
 /// Итератор, на выходе которого - строки распарсенной структуры данных
 struct LogIterator<R: std::io::BufRead> {
-    lines: std::iter::Filter<std::io::Lines<R>, fn(&Result<String, std::io::Error>) -> bool>,
+    lines: std::iter::Filter<
+        std::io::Lines<R>,
+        fn(&Result<String, std::io::Error>) -> bool,
+    >,
 }
 impl<R: std::io::BufRead> LogIterator<R> {
     fn new(reader: R) -> Self {
@@ -27,7 +30,8 @@ impl<R: std::io::BufRead> LogIterator<R> {
                         .ok()
                         .map(|line| line.trim().is_empty())
                         .unwrap_or(false)
-                }) as fn(&Result<String, std::io::Error>) -> bool,
+                })
+                    as fn(&Result<String, std::io::Error>) -> bool,
             ),
         }
     }
@@ -42,7 +46,11 @@ impl<R: std::io::BufRead> Iterator for LogIterator<R> {
 }
 
 /// Принимает поток байт, отдаёт отфильтрованные и распарсенные логи
-pub fn read_log<R: std::io::Read>(input: R, mode: ReadMode, request_ids: &[NonZeroU32]) -> Vec<LogLine> {
+pub fn read_log<R: std::io::Read>(
+    input: R,
+    mode: ReadMode,
+    request_ids: &[NonZeroU32],
+) -> Vec<LogLine> {
     let reader = std::io::BufReader::with_capacity(4096, input);
     LogIterator::new(reader)
         .filter(|log| {
@@ -74,7 +82,8 @@ pub fn read_log<R: std::io::Read>(input: R, mode: ReadMode, request_ids: &[NonZe
 mod test {
     use super::*;
 
-    const SOURCE1: &'static str = r#"System::Error NetworkError "url unknown" requestid=1"#;
+    const SOURCE1: &'static str =
+        r#"System::Error NetworkError "url unknown" requestid=1"#;
 
     const SOURCE: &'static str = r#"
 System::Error NetworkError "network interface is down" requestid=1

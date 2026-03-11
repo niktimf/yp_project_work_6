@@ -74,7 +74,10 @@ impl Parsable for AssetDsc {
                     strip_whitespace(tag("AssetDsc")),
                     strip_whitespace(tag("{")),
                 ),
-                permutation2(key_value("id", unquote()), key_value("dsc", unquote())),
+                permutation2(
+                    key_value("id", unquote()),
+                    key_value("dsc", unquote()),
+                ),
                 strip_whitespace(tag("}")),
             ),
             |(id, dsc)| AssetDsc { id, dsc },
@@ -99,7 +102,10 @@ impl Parsable for Backet {
     fn parser() -> Self::Parser {
         map(
             delimited(
-                all2(strip_whitespace(tag("Backet")), strip_whitespace(tag("{"))),
+                all2(
+                    strip_whitespace(tag("Backet")),
+                    strip_whitespace(tag("{")),
+                ),
                 permutation2(
                     key_value("asset_id", unquote()),
                     key_value("count", stdp::U32),
@@ -152,7 +158,10 @@ impl Parsable for UserBacket {
     type Parser = Map<
         Delimited<
             All<(StripWhitespace<Tag>, StripWhitespace<Tag>)>,
-            Permutation<(KeyValue<Unquote>, KeyValue<<Backet as Parsable>::Parser>)>,
+            Permutation<(
+                KeyValue<Unquote>,
+                KeyValue<<Backet as Parsable>::Parser>,
+            )>,
             StripWhitespace<Tag>,
         >,
         fn((String, Backet)) -> Self,
@@ -213,7 +222,10 @@ impl Parsable for UserBackets {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Announcements(pub(crate) Vec<UserBackets>);
 impl Parsable for Announcements {
-    type Parser = Map<List<<UserBackets as Parsable>::Parser>, fn(Vec<UserBackets>) -> Self>;
+    type Parser = Map<
+        List<<UserBackets as Parsable>::Parser>,
+        fn(Vec<UserBackets>) -> Self,
+    >;
     fn parser() -> Self::Parser {
         fn from_vec(vec: Vec<UserBackets>) -> Announcements {
             Announcements(vec)
@@ -223,26 +235,36 @@ impl Parsable for Announcements {
 }
 
 /// Дженерик-обёртка для парсинга любого [Parsable] типа
-pub(crate) fn just_parse<'a, T: Parsable>(input: &'a str) -> Result<(&'a str, T), ()> {
+pub(crate) fn just_parse<T: Parsable>(
+    input: &str,
+) -> Result<(&str, T), ()> {
     T::parser().parse(input)
 }
 
 // Обратная совместимость: алиасы для прежних функций
-pub fn just_parse_asset_dsc<'a>(input: &'a str) -> Result<(&'a str, AssetDsc), ()> {
+pub fn just_parse_asset_dsc(
+    input: &str,
+) -> Result<(&str, AssetDsc), ()> {
     just_parse(input)
 }
-pub fn just_parse_backet<'a>(input: &'a str) -> Result<(&'a str, Backet), ()> {
+pub fn just_parse_backet(input: &str) -> Result<(&str, Backet), ()> {
     just_parse(input)
 }
-pub fn just_user_cash<'a>(input: &'a str) -> Result<(&'a str, UserCash), ()> {
+pub fn just_user_cash(input: &str) -> Result<(&str, UserCash), ()> {
     just_parse(input)
 }
-pub fn just_user_backet<'a>(input: &'a str) -> Result<(&'a str, UserBacket), ()> {
+pub fn just_user_backet(
+    input: &str,
+) -> Result<(&str, UserBacket), ()> {
     just_parse(input)
 }
-pub fn just_user_backets<'a>(input: &'a str) -> Result<(&'a str, UserBackets), ()> {
+pub fn just_user_backets(
+    input: &str,
+) -> Result<(&str, UserBackets), ()> {
     just_parse(input)
 }
-pub fn just_parse_anouncements<'a>(input: &'a str) -> Result<(&'a str, Announcements), ()> {
+pub fn just_parse_anouncements(
+    input: &str,
+) -> Result<(&str, Announcements), ()> {
     just_parse(input)
 }

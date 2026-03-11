@@ -12,3 +12,14 @@ name = "cli"
 path = "src/main.rs"
 
 [dependencies]
+
+[workspace]
+members = ["."]
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cognitive_complexity = "warn"
+
+[lints]
+workspace = true
