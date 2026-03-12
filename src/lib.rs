@@ -67,8 +67,8 @@ pub fn read_log<R: std::io::Read>(
                         LogKind::App(AppLogKind::Journal(
                             AppLogJournalKind::BuyAsset(_)
                                 | AppLogJournalKind::SellAsset(_)
-                                | AppLogJournalKind::CreateUser { .. }
-                                | AppLogJournalKind::RegisterAsset { .. }
+                                | AppLogJournalKind::CreateUser(_)
+                                | AppLogJournalKind::RegisterAsset(_)
                                 | AppLogJournalKind::DepositCash(_)
                                 | AppLogJournalKind::WithdrawCash(_)
                         ))

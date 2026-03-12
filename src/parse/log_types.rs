@@ -50,25 +50,37 @@ pub enum AppLogTraceKind {
     Check(Announcements),
     GetResponse(String),
 }
+/// Создание пользователя
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CreateUser {
+    pub user_id: String,
+    pub authorized_capital: NonZeroU32,
+}
+/// Удаление пользователя
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeleteUser {
+    pub user_id: String,
+}
+/// Регистрация ассета
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegisterAsset {
+    pub asset_id: String,
+    pub user_id: String,
+    pub liquidity: NonZeroU32,
+}
+/// Отмена регистрации ассета
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnregisterAsset {
+    pub asset_id: String,
+    pub user_id: String,
+}
 /// Журнал [приложения](AppLogKind), самые высокоуровневые события
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AppLogJournalKind {
-    CreateUser {
-        user_id: String,
-        authorized_capital: NonZeroU32,
-    },
-    DeleteUser {
-        user_id: String,
-    },
-    RegisterAsset {
-        asset_id: String,
-        user_id: String,
-        liquidity: NonZeroU32,
-    },
-    UnregisterAsset {
-        asset_id: String,
-        user_id: String,
-    },
+    CreateUser(CreateUser),
+    DeleteUser(DeleteUser),
+    RegisterAsset(RegisterAsset),
+    UnregisterAsset(UnregisterAsset),
     DepositCash(UserCash),
     WithdrawCash(UserCash),
     BuyAsset(UserBacket),
@@ -276,179 +288,113 @@ impl Parsable for AppLogTraceKind {
         )
     }
 }
+impl Parsable for CreateUser {
+    type Parser = Map<
+        Delimited<Tag, Permutation<(KeyValue<Unquote>, KeyValue<stdp::U32>)>, Tag>,
+        fn((String, NonZeroU32)) -> Self,
+    >;
+    fn parser() -> Self::Parser {
+        map(
+            delimited(
+                tag("{"),
+                permutation2(
+                    key_value("user_id", unquote()),
+                    key_value("authorized_capital", stdp::U32),
+                ),
+                tag("}"),
+            ),
+            |(user_id, authorized_capital)| Self {
+                user_id,
+                authorized_capital,
+            },
+        )
+    }
+}
+impl Parsable for DeleteUser {
+    type Parser = Map<
+        Delimited<Tag, KeyValue<Unquote>, Tag>,
+        fn(String) -> Self,
+    >;
+    fn parser() -> Self::Parser {
+        map(
+            delimited(tag("{"), key_value("user_id", unquote()), tag("}")),
+            |user_id| Self { user_id },
+        )
+    }
+}
+impl Parsable for RegisterAsset {
+    type Parser = Map<
+        Delimited<
+            Tag,
+            Permutation<(KeyValue<Unquote>, KeyValue<Unquote>, KeyValue<stdp::U32>)>,
+            Tag,
+        >,
+        fn((String, String, NonZeroU32)) -> Self,
+    >;
+    fn parser() -> Self::Parser {
+        map(
+            delimited(
+                tag("{"),
+                permutation3(
+                    key_value("asset_id", unquote()),
+                    key_value("user_id", unquote()),
+                    key_value("liquidity", stdp::U32),
+                ),
+                tag("}"),
+            ),
+            |(asset_id, user_id, liquidity)| Self {
+                asset_id,
+                user_id,
+                liquidity,
+            },
+        )
+    }
+}
+impl Parsable for UnregisterAsset {
+    type Parser = Map<
+        Delimited<Tag, Permutation<(KeyValue<Unquote>, KeyValue<Unquote>)>, Tag>,
+        fn((String, String)) -> Self,
+    >;
+    fn parser() -> Self::Parser {
+        map(
+            delimited(
+                tag("{"),
+                permutation2(
+                    key_value("asset_id", unquote()),
+                    key_value("user_id", unquote()),
+                ),
+                tag("}"),
+            ),
+            |(asset_id, user_id)| Self { asset_id, user_id },
+        )
+    }
+}
 impl Parsable for AppLogJournalKind {
     type Parser = Preceded<
         Tag,
         Alt<(
-            Map<
-                Preceded<
-                    StripWhitespace<Tag>,
-                    Delimited<
-                        Tag,
-                        Permutation<(KeyValue<Unquote>, KeyValue<stdp::U32>)>,
-                        Tag,
-                    >,
-                >,
-                fn((String, NonZeroU32)) -> Self,
-            >,
-            Map<
-                Preceded<
-                    StripWhitespace<Tag>,
-                    Delimited<Tag, KeyValue<Unquote>, Tag>,
-                >,
-                fn(String) -> Self,
-            >,
-            Map<
-                Preceded<
-                    StripWhitespace<Tag>,
-                    Delimited<
-                        Tag,
-                        Permutation<(
-                            KeyValue<Unquote>,
-                            KeyValue<Unquote>,
-                            KeyValue<stdp::U32>,
-                        )>,
-                        Tag,
-                    >,
-                >,
-                fn((String, String, NonZeroU32)) -> Self,
-            >,
-            Map<
-                Preceded<
-                    StripWhitespace<Tag>,
-                    Delimited<
-                        Tag,
-                        Permutation<(KeyValue<Unquote>, KeyValue<Unquote>)>,
-                        Tag,
-                    >,
-                >,
-                fn((String, String)) -> Self,
-            >,
-            Map<
-                Preceded<StripWhitespace<Tag>, <UserCash as Parsable>::Parser>,
-                fn(UserCash) -> Self,
-            >,
-            Map<
-                Preceded<StripWhitespace<Tag>, <UserCash as Parsable>::Parser>,
-                fn(UserCash) -> Self,
-            >,
-            Map<
-                Preceded<
-                    StripWhitespace<Tag>,
-                    <UserBacket as Parsable>::Parser,
-                >,
-                fn(UserBacket) -> Self,
-            >,
-            Map<
-                Preceded<
-                    StripWhitespace<Tag>,
-                    <UserBacket as Parsable>::Parser,
-                >,
-                fn(UserBacket) -> Self,
-            >,
+            Map<Preceded<StripWhitespace<Tag>, <CreateUser as Parsable>::Parser>, fn(CreateUser) -> Self>,
+            Map<Preceded<StripWhitespace<Tag>, <DeleteUser as Parsable>::Parser>, fn(DeleteUser) -> Self>,
+            Map<Preceded<StripWhitespace<Tag>, <RegisterAsset as Parsable>::Parser>, fn(RegisterAsset) -> Self>,
+            Map<Preceded<StripWhitespace<Tag>, <UnregisterAsset as Parsable>::Parser>, fn(UnregisterAsset) -> Self>,
+            Map<Preceded<StripWhitespace<Tag>, <UserCash as Parsable>::Parser>, fn(UserCash) -> Self>,
+            Map<Preceded<StripWhitespace<Tag>, <UserCash as Parsable>::Parser>, fn(UserCash) -> Self>,
+            Map<Preceded<StripWhitespace<Tag>, <UserBacket as Parsable>::Parser>, fn(UserBacket) -> Self>,
+            Map<Preceded<StripWhitespace<Tag>, <UserBacket as Parsable>::Parser>, fn(UserBacket) -> Self>,
         )>,
     >;
-    #[allow(clippy::too_many_lines)]
     fn parser() -> Self::Parser {
         preceded(
             tag("Journal"),
             alt8(
-                map(
-                    preceded(
-                        strip_whitespace(tag("CreateUser")),
-                        delimited(
-                            tag("{"),
-                            permutation2(
-                                key_value("user_id", unquote()),
-                                key_value("authorized_capital", stdp::U32),
-                            ),
-                            tag("}"),
-                        ),
-                    ),
-                    |(user_id, authorized_capital)| {
-                        Self::CreateUser {
-                            user_id,
-                            authorized_capital,
-                        }
-                    },
-                ),
-                map(
-                    preceded(
-                        strip_whitespace(tag("DeleteUser")),
-                        delimited(
-                            tag("{"),
-                            key_value("user_id", unquote()),
-                            tag("}"),
-                        ),
-                    ),
-                    |user_id| Self::DeleteUser { user_id },
-                ),
-                map(
-                    preceded(
-                        strip_whitespace(tag("RegisterAsset")),
-                        delimited(
-                            tag("{"),
-                            permutation3(
-                                key_value("asset_id", unquote()),
-                                key_value("user_id", unquote()),
-                                key_value("liquidity", stdp::U32),
-                            ),
-                            tag("}"),
-                        ),
-                    ),
-                    |(asset_id, user_id, liquidity)| {
-                        Self::RegisterAsset {
-                            asset_id,
-                            user_id,
-                            liquidity,
-                        }
-                    },
-                ),
-                map(
-                    preceded(
-                        strip_whitespace(tag("UnregisterAsset")),
-                        delimited(
-                            tag("{"),
-                            permutation2(
-                                key_value("asset_id", unquote()),
-                                key_value("user_id", unquote()),
-                            ),
-                            tag("}"),
-                        ),
-                    ),
-                    |(asset_id, user_id)| Self::UnregisterAsset {
-                        asset_id,
-                        user_id,
-                    },
-                ),
-                map(
-                    preceded(
-                        strip_whitespace(tag("DepositCash")),
-                        UserCash::parser(),
-                    ),
-                    Self::DepositCash,
-                ),
-                map(
-                    preceded(
-                        strip_whitespace(tag("WithdrawCash")),
-                        UserCash::parser(),
-                    ),
-                    Self::WithdrawCash,
-                ),
-                map(
-                    preceded(
-                        strip_whitespace(tag("BuyAsset")),
-                        UserBacket::parser(),
-                    ),
-                    Self::BuyAsset,
-                ),
-                map(
-                    preceded(
-                        strip_whitespace(tag("SellAsset")),
-                        UserBacket::parser(),
-                    ),
-                    Self::SellAsset,
-                ),
+                map(preceded(strip_whitespace(tag("CreateUser")), CreateUser::parser()), Self::CreateUser),
+                map(preceded(strip_whitespace(tag("DeleteUser")), DeleteUser::parser()), Self::DeleteUser),
+                map(preceded(strip_whitespace(tag("RegisterAsset")), RegisterAsset::parser()), Self::RegisterAsset),
+                map(preceded(strip_whitespace(tag("UnregisterAsset")), UnregisterAsset::parser()), Self::UnregisterAsset),
+                map(preceded(strip_whitespace(tag("DepositCash")), UserCash::parser()), Self::DepositCash),
+                map(preceded(strip_whitespace(tag("WithdrawCash")), UserCash::parser()), Self::WithdrawCash),
+                map(preceded(strip_whitespace(tag("BuyAsset")), UserBacket::parser()), Self::BuyAsset),
+                map(preceded(strip_whitespace(tag("SellAsset")), UserBacket::parser()), Self::SellAsset),
             ),
         )
     }

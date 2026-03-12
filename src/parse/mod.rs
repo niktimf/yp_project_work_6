@@ -278,10 +278,10 @@ mod test {
             ),
             Ok((
                 "",
-                LogKind::App(AppLogKind::Journal(AppLogJournalKind::CreateUser {
+                LogKind::App(AppLogKind::Journal(AppLogJournalKind::CreateUser(CreateUser {
                     user_id: "Steeve".into(),
                     authorized_capital: nzu(10_000)
-                }))
+                })))
             ))
         );
         assert_eq!(
@@ -290,13 +290,13 @@ mod test {
             Ok((
                 "",
                 LogKind::App(AppLogKind::Journal(
-                    AppLogJournalKind::DeleteUser {
+                    AppLogJournalKind::DeleteUser(DeleteUser {
                         user_id: "Steeve".into()
-                    }
+                    })
                 ))
             ))
         );
-        assert_eq!(LogKind::parser().parse(r#"App::Journal RegisterAsset {"asset_id": "bayc", "liquidity": 100000000, "user_id": "Steeve",}"#), Ok(("", LogKind::App(AppLogKind::Journal(AppLogJournalKind::RegisterAsset{asset_id: "bayc".into(), user_id: "Steeve".into(), liquidity: nzu(100_000_000)})))));
+        assert_eq!(LogKind::parser().parse(r#"App::Journal RegisterAsset {"asset_id": "bayc", "liquidity": 100000000, "user_id": "Steeve",}"#), Ok(("", LogKind::App(AppLogKind::Journal(AppLogJournalKind::RegisterAsset(RegisterAsset{asset_id: "bayc".into(), user_id: "Steeve".into(), liquidity: nzu(100_000_000)}))))));
         assert_eq!(
             LogKind::parser().parse(
                 r#"App::Journal DepositCash UserCash{"user_id": "Steeve", "count": 10,}"#
