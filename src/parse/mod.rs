@@ -71,15 +71,8 @@ mod test {
 
     #[test]
     fn test_quote() {
-        assert_eq!(quote(r#"411"#), r#""411""#.to_string());
-        assert_eq!(quote(r#"4\11""#), r#""4\\11\"""#.to_string());
-    }
-
-    #[test]
-    fn test_do_unquote_non_escaped() {
-        assert_eq!(do_unquote_non_escaped(r#""411""#), Ok(("", "411")));
-        assert_eq!(do_unquote_non_escaped(r#" "411""#), Err(()));
-        assert_eq!(do_unquote_non_escaped(r#"411"#), Err(()));
+        assert_eq!(Unquote::quote(r#"411"#), r#""411""#.to_string());
+        assert_eq!(Unquote::quote(r#"4\11""#), r#""4\\11\"""#.to_string());
     }
 
     #[test]
@@ -327,8 +320,8 @@ mod test {
     proptest! {
         #[test]
         fn quote_unquote_roundtrip(s in r#"[a-zA-Z0-9 \\"]{0,100}"#) {
-            let quoted = quote(&s);
-            let (remaining, unquoted) = do_unquote(&quoted).unwrap();
+            let quoted = Unquote::quote(&s);
+            let (remaining, unquoted) = Unquote.parse(&quoted).unwrap();
             prop_assert_eq!(remaining, "");
             prop_assert_eq!(unquoted, s);
         }
