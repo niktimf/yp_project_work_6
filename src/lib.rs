@@ -1,5 +1,8 @@
 pub mod parse;
-use parse::{LogLine, parse_log_line, LogKind, SystemLogKind, AppLogKind, AppLogJournalKind};
+use parse::{
+    AppLogJournalKind, AppLogKind, LogKind, LogLine, SystemLogKind,
+    parse_log_line,
+};
 use std::num::NonZeroU32;
 
 /// Режим чтения логов
@@ -82,10 +85,10 @@ pub fn read_log<R: std::io::Read>(
 mod test {
     use super::*;
 
-    const SOURCE1: &'static str =
+    const SOURCE1: &str =
         r#"System::Error NetworkError "url unknown" requestid=1"#;
 
-    const SOURCE: &'static str = r#"
+    const SOURCE: &str = r#"
 System::Error NetworkError "network interface is down" requestid=1
 App::Error SystemError "network" requestid=1
 System::Trace SendRequest "CreateUser{\"user_id\": 10, \"authrized_capital\": 1000,}" requestid=2
@@ -156,7 +159,7 @@ App::Journal BuyAsset UserBacket{"user_id":"Alice","backet":Backet{"asset_id":"m
         println!("all parsed:");
         all_parsed
             .iter()
-            .for_each(|parsed| println!("  {:?}", parsed));
+            .for_each(|parsed| println!("  {parsed:?}"));
         // 2 для начала и конца строки (чтобы первая и последняя кавычки на отдельных строках были)
         // второе число - число пустых строк, которые оставлены для удобства чтения
         assert_eq!(all_parsed.len(), SOURCE.lines().count() - 2 - 7);

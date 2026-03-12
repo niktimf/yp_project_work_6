@@ -4,14 +4,10 @@ use super::Parser;
 #[allow(dead_code)]
 pub fn quote(input: &str) -> String {
     let mut result = String::from("\"");
-    result.extend(
-        input
-            .chars()
-            .flat_map(|c| match c {
-                '\\' | '"' => ['\\', c].into_iter().take(2),
-                _ => [c, ' '].into_iter().take(1),
-            }),
-    );
+    result.extend(input.chars().flat_map(|c| match c {
+        '\\' | '"' => ['\\', c].into_iter().take(2),
+        _ => [c, ' '].into_iter().take(1),
+    }));
     result.push('"');
     result
 }

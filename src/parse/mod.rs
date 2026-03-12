@@ -29,6 +29,8 @@ pub fn parse_log_line(input: &str) -> Result<(&str, LogLine), ()> {
 mod test {
     use super::combinators::*;
     use super::*;
+    use proptest::prelude::*;
+    use rstest::rstest;
     use std::num::{NonZeroI32, NonZeroU32};
 
     fn nzu(v: u32) -> NonZeroU32 {
@@ -38,25 +40,33 @@ mod test {
         NonZeroI32::new(v).unwrap()
     }
 
-    #[test]
-    fn test_u32() {
-        assert_eq!(stdp::U32.parse("411"), Ok(("", nzu(411))));
-        assert_eq!(stdp::U32.parse("411ab"), Ok(("ab", nzu(411))));
-        assert_eq!(stdp::U32.parse(""), Err(()));
-        assert_eq!(stdp::U32.parse("-3"), Err(()));
-        assert_eq!(stdp::U32.parse("0x03"), Ok(("", nzu(0x3))));
-        assert_eq!(stdp::U32.parse("0x03abg"), Ok(("g", nzu(0x3ab))));
-        assert_eq!(stdp::U32.parse("0x"), Err(()));
+    #[rstest]
+    #[case("411", Ok(("", nzu(411))))]
+    #[case("411ab", Ok(("ab", nzu(411))))]
+    #[case("", Err(()))]
+    #[case("-3", Err(()))]
+    #[case("0x03", Ok(("", nzu(0x3))))]
+    #[case("0x03abg", Ok(("g", nzu(0x3ab))))]
+    #[case("0x", Err(()))]
+    fn test_u32(
+        #[case] input: &str,
+        #[case] expected: Result<(&str, NonZeroU32), ()>,
+    ) {
+        assert_eq!(stdp::U32.parse(input), expected);
     }
 
-    #[test]
-    fn test_i32() {
-        assert_eq!(stdp::I32.parse("411"), Ok(("", nzi(411))));
-        assert_eq!(stdp::I32.parse("411ab"), Ok(("ab", nzi(411))));
-        assert_eq!(stdp::I32.parse(""), Err(()));
-        assert_eq!(stdp::I32.parse("-3"), Ok(("", nzi(-3))));
-        assert_eq!(stdp::I32.parse("0x03"), Err(()));
-        assert_eq!(stdp::I32.parse("-"), Err(()));
+    #[rstest]
+    #[case("411", Ok(("", nzi(411))))]
+    #[case("411ab", Ok(("ab", nzi(411))))]
+    #[case("", Err(()))]
+    #[case("-3", Ok(("", nzi(-3))))]
+    #[case("0x03", Err(()))]
+    #[case("-", Err(()))]
+    fn test_i32(
+        #[case] input: &str,
+        #[case] expected: Result<(&str, NonZeroI32), ()>,
+    ) {
+        assert_eq!(stdp::I32.parse(input), expected);
     }
 
     #[test]
@@ -312,5 +322,50 @@ mod test {
             ))
         );
         assert_eq!(LogKind::parser().parse(r#"App::Journal BuyAsset UserBacket{"user_id": "Steeve", "backet": Backet{"asset_id":"bayc","count":1,},}"#), Ok(("", LogKind::App(AppLogKind::Journal(AppLogJournalKind::BuyAsset(UserBacket{user_id: "Steeve".into(), backet: Backet{asset_id: "bayc".into(),count:nzu(1)}}))))));
+    }
+
+    proptest! {
+        #[test]
+        fn quote_unquote_roundtrip(s in r#"[a-zA-Z0-9 \\"]{0,100}"#) {
+            let quoted = quote(&s);
+            let (remaining, unquoted) = do_unquote(&quoted).unwrap();
+            prop_assert_eq!(remaining, "");
+            prop_assert_eq!(unquoted, s);
+        }
+
+        #[test]
+        fn u32_roundtrip(v in 1u32..=u32::MAX) {
+            let nz = NonZeroU32::new(v).unwrap();
+            let s = v.to_string();
+            let (remaining, parsed) = stdp::U32.parse(&s).unwrap();
+            prop_assert_eq!(remaining, "");
+            prop_assert_eq!(parsed, nz);
+        }
+
+        #[test]
+        fn u32_hex_roundtrip(v in 1u32..=u32::MAX) {
+            let nz = NonZeroU32::new(v).unwrap();
+            let s = format!("0x{v:x}");
+            let (remaining, parsed) = stdp::U32.parse(&s).unwrap();
+            prop_assert_eq!(remaining, "");
+            prop_assert_eq!(parsed, nz);
+        }
+
+        #[test]
+        fn i32_roundtrip(v in any::<i32>().prop_filter("nonzero", |v| *v != 0)) {
+            let nz = NonZeroI32::new(v).unwrap();
+            let s = v.to_string();
+            let (remaining, parsed) = stdp::I32.parse(&s).unwrap();
+            prop_assert_eq!(remaining, "");
+            prop_assert_eq!(parsed, nz);
+        }
+
+        #[test]
+        fn byte_roundtrip(v in any::<u8>()) {
+            let s = format!("{v:02x}");
+            let (remaining, parsed) = stdp::Byte.parse(&s).unwrap();
+            prop_assert_eq!(remaining, "");
+            prop_assert_eq!(parsed, v);
+        }
     }
 }

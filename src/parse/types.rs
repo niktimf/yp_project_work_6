@@ -2,7 +2,11 @@ use std::num::NonZeroU32;
 
 use super::Parsable;
 use super::Parser;
-use super::combinators::{Map, Take, map, take, Alt, Tag, Delimited, Unquote, alt2, tag, delimited, unquote, All, StripWhitespace, Permutation, KeyValue, all2, strip_whitespace, permutation2, key_value, List, list};
+use super::combinators::{
+    All, Alt, Delimited, KeyValue, List, Map, Permutation, StripWhitespace,
+    Tag, Take, Unquote, all2, alt2, delimited, key_value, list, map,
+    permutation2, strip_whitespace, tag, take, unquote,
+};
 use super::stdp;
 
 pub const AUTHDATA_SIZE: usize = 1024;
@@ -18,12 +22,6 @@ impl Parsable for AuthData {
             Self(authdata.try_into().unwrap_or([0; AUTHDATA_SIZE]))
         })
     }
-}
-
-/// Конструкция 'либо-либо'
-pub enum Either<Left, Right> {
-    Left(Left),
-    Right(Right),
 }
 
 /// Статус, которые можно парсить
@@ -235,17 +233,13 @@ impl Parsable for Announcements {
 }
 
 /// Дженерик-обёртка для парсинга любого [Parsable] типа
-fn just_parse<T: Parsable>(
-    input: &str,
-) -> Result<(&str, T), ()> {
+fn just_parse<T: Parsable>(input: &str) -> Result<(&str, T), ()> {
     T::parser().parse(input)
 }
 
 // Обратная совместимость: алиасы для прежних функций
 #[allow(clippy::missing_errors_doc, clippy::result_unit_err)]
-pub fn just_parse_asset_dsc(
-    input: &str,
-) -> Result<(&str, AssetDsc), ()> {
+pub fn just_parse_asset_dsc(input: &str) -> Result<(&str, AssetDsc), ()> {
     just_parse(input)
 }
 #[allow(clippy::missing_errors_doc, clippy::result_unit_err)]
@@ -257,15 +251,11 @@ pub fn just_user_cash(input: &str) -> Result<(&str, UserCash), ()> {
     just_parse(input)
 }
 #[allow(clippy::missing_errors_doc, clippy::result_unit_err)]
-pub fn just_user_backet(
-    input: &str,
-) -> Result<(&str, UserBacket), ()> {
+pub fn just_user_backet(input: &str) -> Result<(&str, UserBacket), ()> {
     just_parse(input)
 }
 #[allow(clippy::missing_errors_doc, clippy::result_unit_err)]
-pub fn just_user_backets(
-    input: &str,
-) -> Result<(&str, UserBackets), ()> {
+pub fn just_user_backets(input: &str) -> Result<(&str, UserBackets), ()> {
     just_parse(input)
 }
 #[allow(clippy::missing_errors_doc, clippy::result_unit_err)]
