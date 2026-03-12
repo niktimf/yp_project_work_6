@@ -67,6 +67,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let logs = analysis::read_log(file, analysis::ReadMode::All, &[]);
     println!("got logs:");
-    logs.iter().for_each(|parsed| println!("  {parsed:?}"));
+    for parsed in &logs {
+        println!("  {parsed:?}");
+    }
     Ok(())
 }

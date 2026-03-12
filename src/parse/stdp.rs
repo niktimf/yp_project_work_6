@@ -12,8 +12,8 @@ impl Parser for U32 {
         let end_idx = remaining
             .char_indices()
             .find_map(|(idx, c)| match (is_hex, c) {
-                (true, 'a'..='f' | '0'..='9' | 'A'..='F') => None,
-                (false, '0'..='9') => None,
+                (true, 'a'..='f' | '0'..='9' | 'A'..='F')
+                | (false, '0'..='9') => None,
                 _ => Some(idx),
             })
             .unwrap_or(remaining.len());
@@ -28,6 +28,7 @@ impl Parser for U32 {
 }
 /// Знаковые числа (ненулевые)
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct I32;
 impl Parser for I32 {
     type Dest = std::num::NonZeroI32;

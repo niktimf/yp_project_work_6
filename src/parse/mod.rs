@@ -20,6 +20,7 @@ pub use log_types::*;
 pub use types::*;
 
 /// Распарсить строку лога
+#[allow(clippy::missing_errors_doc, clippy::result_unit_err)]
 pub fn parse_log_line(input: &str) -> Result<(&str, LogLine), ()> {
     <LogLine as Parsable>::parser().parse(input)
 }

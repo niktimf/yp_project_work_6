@@ -15,6 +15,7 @@ pub enum ReadMode {
 
 /// Итератор, на выходе которого - строки распарсенной структуры данных
 struct LogIterator<R: std::io::BufRead> {
+    #[allow(clippy::type_complexity)]
     lines: std::iter::Filter<
         std::io::Lines<R>,
         fn(&Result<String, std::io::Error>) -> bool,

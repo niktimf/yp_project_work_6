@@ -1,6 +1,7 @@
 use super::Parser;
 
 /// Обернуть строку в кавычки, экранировав кавычки, которые в строке уже есть
+#[allow(dead_code)]
 pub fn quote(input: &str) -> String {
     let mut result = String::from("\"");
     result.extend(
@@ -63,6 +64,7 @@ pub const fn unquote() -> Unquote {
 }
 /// Парсер, возвращающий результат как есть
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AsIs;
 impl Parser for AsIs {
     type Dest = String;
@@ -262,6 +264,7 @@ where
 }
 /// Конструктор [All] для трёх парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
+#[allow(dead_code)]
 pub const fn all3<A0: Parser, A1: Parser, A2: Parser>(
     a0: A0,
     a1: A1,
@@ -291,6 +294,7 @@ where
 }
 /// Конструктор [All] для четырёх парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
+#[allow(dead_code)]
 pub const fn all4<A0: Parser, A1: Parser, A2: Parser, A3: Parser>(
     a0: A0,
     a1: A1,
@@ -306,6 +310,7 @@ pub const fn all4<A0: Parser, A1: Parser, A2: Parser, A3: Parser>(
 /// простое '"ключ":значение' читаться не будет
 #[derive(Debug, Clone)]
 pub struct KeyValue<T> {
+    #[allow(clippy::type_complexity)]
     pub(crate) parser: Delimited<
         All<(StripWhitespace<QuotedTag>, StripWhitespace<Tag>)>,
         StripWhitespace<T>,
@@ -465,15 +470,16 @@ impl<T: Parser> Parser for List<T> {
             input.trim_start().strip_prefix('[').ok_or(())?.trim_start();
         let mut result = Vec::new();
         while !remaining.is_empty() {
-            if let Some(rest) = remaining.strip_prefix(']') { return Ok((rest.trim_start(), result)) } else {
-                let (new_remaining, item) = self.parser.parse(remaining)?;
-                remaining = new_remaining
-                    .trim_start()
-                    .strip_prefix(',')
-                    .ok_or(())?
-                    .trim_start();
-                result.push(item);
+            if let Some(rest) = remaining.strip_prefix(']') {
+                return Ok((rest.trim_start(), result));
             }
+            let (new_remaining, item) = self.parser.parse(remaining)?;
+            remaining = new_remaining
+                .trim_start()
+                .strip_prefix(',')
+                .ok_or(())?
+                .trim_start();
+            result.push(item);
         }
         Err(()) // строка кончилась, не закрыв скобку
     }
@@ -604,6 +610,7 @@ where
 }
 /// Конструктор [Alt] для восьми парсеров
 /// (в Rust нет чего-то, вроде variadic templates из C++)
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub const fn alt8<
     Dest,
     A0: Parser<Dest = Dest>,

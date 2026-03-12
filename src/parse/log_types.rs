@@ -6,7 +6,7 @@ use super::stdp;
 use super::types::{AuthData, Announcements, UserCash, UserBacket};
 
 /// Все виды логов
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LogKind {
     System(SystemLogKind),
     App(AppLogKind),
@@ -30,7 +30,7 @@ pub enum SystemLogErrorKind {
     AccessDenied(String),
 }
 /// Все виды [логов приложения](LogKind) логов
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AppLogKind {
     Error(AppLogErrorKind),
     Trace(AppLogTraceKind),
@@ -43,7 +43,7 @@ pub enum AppLogErrorKind {
     SystemError(String),
 }
 /// Trace [приложения](AppLogKind)
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AppLogTraceKind {
     Connect(Box<AuthData>),
     SendRequest(String),
@@ -51,7 +51,7 @@ pub enum AppLogTraceKind {
     GetResponse(String),
 }
 /// Журнал [приложения](AppLogKind), самые высокоуровневые события
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AppLogJournalKind {
     CreateUser {
         user_id: String,
@@ -348,6 +348,7 @@ impl Parsable for AppLogJournalKind {
             >,
         )>,
     >;
+    #[allow(clippy::too_many_lines)]
     fn parser() -> Self::Parser {
         preceded(
             tag("Journal"),
@@ -432,7 +433,7 @@ impl Parsable for AppLogJournalKind {
                         strip_whitespace(tag("WithdrawCash")),
                         UserCash::parser(),
                     ),
-                    Self::DepositCash,
+                    Self::WithdrawCash,
                 ),
                 map(
                     preceded(
@@ -507,7 +508,7 @@ impl Parsable for LogKind {
     }
 }
 /// Строка логов, [лог](AppLogKind) с `request_id`
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LogLine {
     pub kind: LogKind,
     pub request_id: NonZeroU32,

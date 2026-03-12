@@ -219,7 +219,7 @@ impl Parsable for UserBackets {
     }
 }
 /// Список опубликованных бакетов
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Announcements(pub(crate) Vec<UserBackets>);
 impl Parsable for Announcements {
     type Parser = Map<
@@ -235,34 +235,40 @@ impl Parsable for Announcements {
 }
 
 /// Дженерик-обёртка для парсинга любого [Parsable] типа
-pub fn just_parse<T: Parsable>(
+fn just_parse<T: Parsable>(
     input: &str,
 ) -> Result<(&str, T), ()> {
     T::parser().parse(input)
 }
 
 // Обратная совместимость: алиасы для прежних функций
+#[allow(clippy::missing_errors_doc, clippy::result_unit_err)]
 pub fn just_parse_asset_dsc(
     input: &str,
 ) -> Result<(&str, AssetDsc), ()> {
     just_parse(input)
 }
+#[allow(clippy::missing_errors_doc, clippy::result_unit_err)]
 pub fn just_parse_backet(input: &str) -> Result<(&str, Backet), ()> {
     just_parse(input)
 }
+#[allow(clippy::missing_errors_doc, clippy::result_unit_err)]
 pub fn just_user_cash(input: &str) -> Result<(&str, UserCash), ()> {
     just_parse(input)
 }
+#[allow(clippy::missing_errors_doc, clippy::result_unit_err)]
 pub fn just_user_backet(
     input: &str,
 ) -> Result<(&str, UserBacket), ()> {
     just_parse(input)
 }
+#[allow(clippy::missing_errors_doc, clippy::result_unit_err)]
 pub fn just_user_backets(
     input: &str,
 ) -> Result<(&str, UserBackets), ()> {
     just_parse(input)
 }
+#[allow(clippy::missing_errors_doc, clippy::result_unit_err)]
 pub fn just_parse_anouncements(
     input: &str,
 ) -> Result<(&str, Announcements), ()> {
